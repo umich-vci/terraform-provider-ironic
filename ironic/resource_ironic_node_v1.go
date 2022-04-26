@@ -146,6 +146,7 @@ func resourceNodeV1() *schema.Resource {
 			"resource_class": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 			},
 			"storage_interface": {
 				Type:     schema.TypeString,
