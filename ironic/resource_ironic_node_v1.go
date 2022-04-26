@@ -14,6 +14,13 @@ import (
 	"github.com/metal3-io/baremetal-operator/pkg/provisioner/ironic"
 )
 
+/* FIXME: Support drivers other than IPMI, ilo, ilo5, idrac, and redfish
+   This is a list of keys that will be ignored because by default passwords
+   are not returned by the API. */
+var driverSensitiveKeyNames = []string{"ipmi_password", "ilo_password",
+	"snmp_auth_prot_password", "snmp_auth_priv_password", "drac_password",
+	"redfish_password"}
+
 // Schema resource definition for an Ironic node.
 func resourceNodeV1() *schema.Resource {
 	return &schema.Resource{
@@ -59,10 +66,16 @@ func resourceNodeV1() *schema.Resource {
 				Type:     schema.TypeMap,
 				Optional: true,
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					/* FIXME: Password updates aren't considered. How can I know if the *local* data changed? */
-					/* FIXME: Support drivers other than IPMI */
-					if k == "driver_info.ipmi_password" && old == "******" {
-						return true
+					/* By default, the Ironic API returns ****** for all password fields.
+					If you have changed the show_password policy in Ironic then
+					the API will return passwords. Assuming your actual password
+					isn't ****** this should keep you up to date. */
+					for _, s := range driverSensitiveKeyNames {
+						keyName := fmt.Sprintf("driver_info.%s", s)
+						if k == keyName && old == "******" {
+							log.Printf("[INFO] supressing %s from diff due to password being masked by API", keyName)
+							return true
+						}
 					}
 
 					return false
