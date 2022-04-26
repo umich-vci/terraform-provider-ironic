@@ -87,6 +87,7 @@ func resourceNodeV1() *schema.Resource {
 			"properties": {
 				Type:     schema.TypeMap,
 				Optional: true,
+				Computed: true,
 			},
 			"root_device": {
 				Type:     schema.TypeMap,
@@ -382,7 +383,11 @@ func resourceNodeV1Read(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 	delete(node.Properties, "root_device")
-	err = d.Set("properties", node.Properties)
+	stringProperties := map[string]string{}
+	for k, v := range node.Properties {
+		stringProperties[k] = fmt.Sprintf("%v", v)
+	}
+	err = d.Set("properties", stringProperties)
 	if err != nil {
 		return err
 	}
