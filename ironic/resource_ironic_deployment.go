@@ -41,6 +41,12 @@ func resourceDeployment() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+			"config_drive": {
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				ConflictsWith: []string{"user_data", "user_data_url", "user_data_url_ca_cert", "user_data_url_headers", "network_data", "metadata"},
+			},
 			"deploy_steps": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -166,12 +172,17 @@ func resourceDeploymentCreate(d *schema.ResourceData, meta interface{}) error {
 		userData = ignitionData
 	}
 
-	configDrive, err := buildConfigDrive(client.Microversion,
-		userData,
-		d.Get("network_data").(map[string]interface{}),
-		d.Get("metadata").(map[string]interface{}))
-	if err != nil {
-		return err
+	var configDrive interface{}
+	if c, ok := d.GetOk("config_drive"); ok {
+		configDrive = c.(string)
+	} else {
+		configDrive, err = buildConfigDrive(client.Microversion,
+			userData,
+			d.Get("network_data").(map[string]interface{}),
+			d.Get("metadata").(map[string]interface{}))
+		if err != nil {
+			return err
+		}
 	}
 
 	// Deploy the node - drive Ironic state machine until node is 'active'
